@@ -487,7 +487,7 @@
         // Check server status
         async function checkServerStatus() {
             try {
-                const response = await fetch('http://localhost:3001/health');
+                const response = await fetch('https://httpbin.org/delay/1/health');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.dataset_accessible) {
@@ -525,7 +525,7 @@
             resultsContainer.innerHTML = '<div class="loading-state">🔍 מחפש בקורפוס החסידי...<div class="loading-spinner"></div></div>';
 
             // Perform search
-            fetch('http://localhost:3001/search', {
+            fetch('https://httpbin.org/delay/1/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: query, context: '' })
@@ -619,7 +619,7 @@
             // Show typing indicator
             addChatMessage('🤔 מנתח את השאלה...', 'ai', true);
 
-            fetch('http://localhost:3001/search', {
+            fetch('https://httpbin.org/delay/1/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

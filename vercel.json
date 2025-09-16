@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "demo_proxy.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "routes": [
+    { "src": "/(.*)", "dest": "demo_proxy.py" }
+  ]
+}

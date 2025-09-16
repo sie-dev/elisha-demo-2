@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIE מערכת חיפוש ותרגום חסידי מאוחדת</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #C79A51;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #333333 100%);
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #C79A51;
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #C79A51, #DAB760);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 80vh;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Search Panel */
+        .search-controls {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-family: 'Times New Roman', serif;
+            direction: rtl;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #C79A51, #DAB760);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(199, 154, 81, 0.3);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results */
+        .results-area {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .hebrew-text {
+            font-family: 'Times New Roman', serif;
+            font-size: 16px;
+            line-height: 1.8;
+            direction: rtl;
+            text-align: right;
+        }
+
+        .english-text {
+            direction: ltr;
+            text-align: left;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        /* Translation Panel */
+        .sefarim-selector {
+            margin-bottom: 15px;
+        }
+
+        .sefer-select, .language-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .chunk-display {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .translation-result {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 SIE מערכת חיפוש ותרגום חסידי מאוחדת</h1>
+            <p>חיפוש, ניתוח ותרגום טקסטים חסידיים במערכת אחת</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('search')">🔍 חיפוש וניתוח</button>
+            <button class="nav-tab" onclick="switchTab('translate')">🔄 תרגום ספרים</button>
+            <button class="nav-tab" onclick="switchTab('integrated')">🎯 תרגום מחיפוש</button>
+        </div>
+
+        <!-- Search Tab -->
+        <div id="search-tab" class="tab-content active">
+            <div class="main-grid">
+                <div class="panel">
+                    <h3>חיפוש בקורפוס החסידי</h3>
+                    <div class="search-controls">
+                        <input type="text" class="search-input" id="search-query"
+                               placeholder="חפש מושגים: בנין המלכות, ברכת כהנים, ששים גבורים...">
+                        <button class="action-btn" onclick="performSearch()">חפש</button>
+                        <button class="action-btn" onclick="translateSearchResults()">תרגם תוצאות</button>
+                    </div>
+                    <div class="results-area" id="search-results">
+                        <div class="loading">הכנס מושג לחיפוש...</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>ניתוח ותרגום</h3>
+                    <div class="results-area" id="analysis-results">
+                        <div class="loading">התוצאות יופיעו כאן...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Translation Tab -->
+        <div id="translate-tab" class="tab-content">
+            <div class="main-grid">
+                <div class="panel">
+                    <h3>בחירת ספר ופרק</h3>
+                    <div class="sefarim-selector">
+                        <select class="sefer-select" id="sefer-select" onchange="loadSefer()">
+                            <option value="">בחר ספר לתרגום...</option>
+                        </select>
+                        <select class="language-select" id="language-select">
+                            <option value="English">English</option>
+                            <option value="Yiddish">יידיש</option>
+                            <option value="French">Français</option>
+                        </select>
+                    </div>
+                    <div class="chunk-display hebrew-text" id="selected-chunk">
+                        בחר ספר וחלק לתרגום...
+                    </div>
+                    <button class="action-btn" onclick="translateChunk()" disabled id="translate-btn">תרגם פרק</button>
+                </div>
+
+                <div class="panel">
+                    <h3>תרגום</h3>
+                    <div class="translation-result" id="translation-output">
+                        התרגום יופיע כאן...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integrated Tab -->
+        <div id="integrated-tab" class="tab-content">
+            <div class="main-grid">
+                <div class="panel">
+                    <h3>חיפוש מתקדם עם תרגום</h3>
+                    <div class="search-controls">
+                        <input type="text" class="search-input" id="integrated-query"
+                               placeholder="חפש וקבל ניתוח מתורגם...">
+                        <select class="language-select" id="integrated-language">
+                            <option value="English">English</option>
+                            <option value="Yiddish">יידיש</option>
+                        </select>
+                        <button class="action-btn" onclick="performIntegratedSearch()">חפש ותרגם</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>תוצאות מתורגמות</h3>
+                    <div class="results-area" id="integrated-results">
+                        <div class="loading">התוצאות המתורגמות יופיעו כאן...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class UnifiedChabadInterface {
+            constructor() {
+                this.baseUrl = window.location.hostname.includes('github.io') ?
+                    'https://your-railway-app.railway.app' : 'http://localhost:3001';
+                this.sefarim = [];
+                this.currentSearchResults = null;
+                this.demoMode = false; // Railway backend available
+
+                if (this.demoMode) {
+                    this.initDemoData();
+                } else {
+                    this.loadSefarimList();
+                }
+            }
+
+            initDemoData() {
+                this.sefarim = [
+                    { name: 'לקוטי תורה - Likkutei Torah', path: 'demo/likkutei_torah.txt', size: 245000 },
+                    { name: 'תורה אור - Torah Or', path: 'demo/torah_or.txt', size: 180000 },
+                    { name: 'דרך מצותיך - Derech Mitzvotecha', path: 'demo/derech_mitzvotecha.txt', size: 165000 }
+                ];
+                this.populateSefarimSelect();
+            }
+
+            async loadSefarimList() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/sefarim`);
+                    const data = await response.json();
+                    this.sefarim = data.sefarim;
+                    this.populateSefarimSelect();
+                } catch (error) {
+                    console.error('Error loading sefarim:', error);
+                }
+            }
+
+            populateSefarimSelect() {
+                const select = document.getElementById('sefer-select');
+                this.sefarim.forEach(sefer => {
+                    const option = document.createElement('option');
+                    option.value = sefer.path;
+                    option.textContent = sefer.name;
+                    select.appendChild(option);
+                });
+            }
+
+            async performSearch() {
+                const query = document.getElementById('search-query').value.trim();
+                if (!query) return;
+
+                const resultsDiv = document.getElementById('search-results');
+                resultsDiv.innerHTML = '<div class="loading">מחפש...</div>';
+
+                if (this.demoMode) {
+                    this.performDemoSearch(query, resultsDiv);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.baseUrl}/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+
+                    const data = await response.json();
+                    this.currentSearchResults = data;
+
+                    if (data.analysis && data.analysis.content) {
+                        resultsDiv.innerHTML = `<div class="hebrew-text">${data.analysis.content[0].text}</div>`;
+                    } else {
+                        resultsDiv.innerHTML = '<div class="error">לא נמצאו תוצאות</div>';
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML = '<div class="error">שגיאה בחיפוש</div>';
+                }
+            }
+
+            performDemoSearch(query, resultsDiv) {
+                const demoResponses = {
+                    "בנין המלכות": `דע, דברכת כהנים - "יברכך ה' וישמרך" - מדובר על בנין המלכות העליונה.
+    כמו שכתב האריז"ל בפרי עץ חיים, שמלכות היא הספירה התחתונה שמקבלת מכל הספירות העליונות.
+
+    ובלקוטי תורה מבואר, שכל ישראל הם "ממלכת כהנים וגוי קדוש", ועל ידי עבודתם הם בונים את המלכות דקדושה.`,
+
+                    "ברכת כהנים": `ברכת כהנים מורכבת משלושה פסוקים:
+    יברכך ה' וישמרך - ברכה גשמית
+    יאר ה' פניו אליך - ברכה רוחנית
+    ישא ה' פניו אליך - שלום
+
+    ובתורת חב"ד מבואר שהברכות הללו מתייחסות לשלוש הקווים - ימין, שמאל, ואמצע.`,
+
+                    "ששים גבורים": `ששים גבורים סביב למטתו של שלמה - אלו ששים אלף אותיות התורה.
+    כל אות בתורה היא כמו גבור השומר על קדושת התורה.
+
+    וכמו שמבואר בזוהר, ששים הוא מספר המייצג שלמות וגבורה.`
+                };
+
+                let response = null;
+                for (const [key, value] of Object.entries(demoResponses)) {
+                    if (query.includes(key) || key.includes(query)) {
+                        response = value;
+                        break;
+                    }
+                }
+
+                if (!response) {
+                    response = `דוגמה לתוצאה עבור "${query}":
+
+זוהי גרסת דמו של חיפוש בקורפוס החסידי. בגרסה המלאה, החיפוש יתבצע במאגר המלא של כל הספרים החסידיים.
+
+התוצאות יכללו:
+• קטעים מתורת חב"ד
+• מקורות מהזוהר ומהאריז"ל
+• הסברים בעברית, יידיש ואנגלית
+• ציוני מקורות מדויקים
+
+זוהי תצוגה מקדימה בלבד.`;
+                }
+
+                this.currentSearchResults = {
+                    analysis: { content: [{ text: response }] }
+                };
+
+                setTimeout(() => {
+                    resultsDiv.innerHTML = `<div class="hebrew-text">${response}</div>`;
+                }, 800);
+            }
+
+            async translateSearchResults() {
+                if (!this.currentSearchResults) {
+                    alert('בצע חיפוש קודם');
+                    return;
+                }
+
+                const analysisDiv = document.getElementById('analysis-results');
+                analysisDiv.innerHTML = '<div class="loading">מתרגם...</div>';
+
+                try {
+                    const textToTranslate = this.currentSearchResults.analysis.content[0].text;
+                    const response = await fetch(`${this.baseUrl}/translate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: textToTranslate,
+                            target_language: 'English'
+                        })
+                    });
+
+                    const data = await response.json();
+                    analysisDiv.innerHTML = `
+                        <div class="hebrew-text">${data.original}</div>
+                        <div class="english-text">${data.translation}</div>
+                    `;
+                } catch (error) {
+                    analysisDiv.innerHTML = '<div class="error">שגיאה בתרגום</div>';
+                }
+            }
+
+            async loadSefer() {
+                const seferPath = document.getElementById('sefer-select').value;
+                if (!seferPath) return;
+
+                try {
+                    const response = await fetch(`${this.baseUrl}/sefer/${encodeURIComponent(seferPath)}/chunks`);
+                    const data = await response.json();
+
+                    if (data.chunks.length > 0) {
+                        document.getElementById('selected-chunk').textContent = data.chunks[0].content;
+                        document.getElementById('translate-btn').disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Error loading sefer:', error);
+                }
+            }
+
+            async translateChunk() {
+                const chunkText = document.getElementById('selected-chunk').textContent;
+                const targetLang = document.getElementById('language-select').value;
+                const outputDiv = document.getElementById('translation-output');
+
+                outputDiv.innerHTML = '<div class="loading">מתרגם...</div>';
+
+                try {
+                    const response = await fetch(`${this.baseUrl}/translate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: chunkText,
+                            target_language: targetLang
+                        })
+                    });
+
+                    const data = await response.json();
+                    outputDiv.innerHTML = data.translation;
+                } catch (error) {
+                    outputDiv.innerHTML = '<div class="error">שגיאה בתרגום</div>';
+                }
+            }
+
+            async performIntegratedSearch() {
+                const query = document.getElementById('integrated-query').value.trim();
+                const targetLang = document.getElementById('integrated-language').value;
+                if (!query) return;
+
+                const resultsDiv = document.getElementById('integrated-results');
+                resultsDiv.innerHTML = '<div class="loading">מחפש ומתרגם...</div>';
+
+                try {
+                    // First search
+                    const searchResponse = await fetch(`${this.baseUrl}/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: query })
+                    });
+
+                    const searchData = await searchResponse.json();
+
+                    if (searchData.analysis && searchData.analysis.content) {
+                        // Then translate
+                        const translateResponse = await fetch(`${this.baseUrl}/translate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                text: searchData.analysis.content[0].text,
+                                target_language: targetLang
+                            })
+                        });
+
+                        const translateData = await translateResponse.json();
+                        resultsDiv.innerHTML = `
+                            <div class="hebrew-text">
+                                <h4>מקורי:</h4>
+                                ${translateData.original}
+                            </div>
+                            <div class="english-text">
+                                <h4>תרגום ל${targetLang}:</h4>
+                                ${translateData.translation}
+                            </div>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = '<div class="error">לא נמצאו תוצאות</div>';
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML = '<div class="error">שגיאה בחיפוש או תרגום</div>';
+                }
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Global functions for onclick handlers
+        let unifiedInterface;
+
+        function performSearch() {
+            unifiedInterface.performSearch();
+        }
+
+        function translateSearchResults() {
+            unifiedInterface.translateSearchResults();
+        }
+
+        function loadSefer() {
+            unifiedInterface.loadSefer();
+        }
+
+        function translateChunk() {
+            unifiedInterface.translateChunk();
+        }
+
+        function performIntegratedSearch() {
+            unifiedInterface.performIntegratedSearch();
+        }
+
+        // Initialize
+        window.onload = () => {
+            unifiedInterface = new UnifiedChabadInterface();
+        };
+    </script>
+</body>
+</html>
