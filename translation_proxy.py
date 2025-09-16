@@ -14,9 +14,14 @@ import glob
 app = Flask(__name__)
 CORS(app)
 
-# Paths
-CHABAD_DATA_PATH = "/Users/elishapearl/Library/CloudStorage/Dropbox/chabad-uploads"
-CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY', 'your-api-key-here')
+# Paths - Railway deployment compatible
+CHABAD_DATA_PATH = os.getenv('CHABAD_DATA_PATH',
+    '/Users/elishapearl/Library/CloudStorage/Dropbox/chabad-uploads' if os.path.exists('/Users/elishapearl/Library/CloudStorage/Dropbox/chabad-uploads')
+    else './data')
+CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY')
+
+if not CLAUDE_API_KEY:
+    raise ValueError("CLAUDE_API_KEY environment variable is required")
 
 def list_sefarim():
     """List all available sefarim in the Dropbox folder"""
@@ -259,9 +264,10 @@ def search_and_analyze():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 3001))
     print("🚀 Starting Translation-Enabled Chabad Proxy...")
-    print(f"   Server: http://localhost:3001")
+    print(f"   Server: http://localhost:{port}")
     print(f"   Dataset: {CHABAD_DATA_PATH}")
     print(f"   Features: Search + Translation")
 
-    app.run(host='0.0.0.0', port=3001, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
