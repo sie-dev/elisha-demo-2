@@ -37,7 +37,7 @@ def search_chabad_files(query):
         if result.returncode == 0 and result.stdout:
             search_results.append({
                 'source': 'ripgrep_json',
-                'content': result.stdout[:5000]  # Limit content size
+                'content': result.stdout[:3000]  # Limit content size for faster processing
             })
 
         # Also search in text files
@@ -54,7 +54,7 @@ def search_chabad_files(query):
         if result_txt.returncode == 0 and result_txt.stdout:
             search_results.append({
                 'source': 'ripgrep_txt',
-                'content': result_txt.stdout[:5000]  # Limit content size
+                'content': result_txt.stdout[:3000]  # Limit content size for faster processing
             })
 
     except subprocess.TimeoutExpired:
@@ -149,7 +149,7 @@ Focus on the actual content found in the search results above. Include proper so
                 'max_tokens': 4000,
                 'messages': [{'role': 'user', 'content': prompt}]
             },
-            timeout=60
+            timeout=120
         )
 
         if response.status_code == 200:
@@ -167,6 +167,15 @@ Focus on the actual content found in the search results above. Include proper so
             return jsonify({'error': error_msg}), response.status_code
 
     except Exception as e:
+        # If Claude times out but we found search results, show them
+        if 'search_results' in locals() and search_results and any(r.get('source') != 'error' for r in search_results):
+            return jsonify({
+                'query': query,
+                'search_results_count': len([r for r in search_results if r.get('source') != 'error']),
+                'analysis': {'content': [{'text': f'Claude analysis failed ({str(e)[:100]}...), but search results were found. Check raw results below for the actual passages from your Chabad dataset.'}]},
+                'raw_search_results': search_results,
+                'timeout_fallback': True
+            })
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
