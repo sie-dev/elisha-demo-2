@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chabad Torah Search - Working Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.8em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .hebrew {
+            font-family: 'David Libre', 'Times New Roman', serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 1.3em;
+            color: #5a6c7d;
+        }
+
+        .demo-badge {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
+        }
+
+        .search-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .api-key-section {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .api-key-section h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input, textarea {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .search-input {
+            font-size: 20px;
+            padding: 18px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #667eea;
+        }
+
+        .api-key-input {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 18px 35px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .examples {
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .examples h4 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .example-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .results h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 2.2em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+        }
+
+        .result-stats {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #e17055, #d63031);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(209, 48, 49, 0.3);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .server-status {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Hebrew and RTL styling */
+        .hebrew-text {
+            font-family: 'David Libre', 'Times New Roman', serif;
+            direction: rtl;
+            text-align: right;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+
+        .yiddish-text {
+            font-family: 'Times New Roman', serif;
+            direction: rtl;
+            text-align: right;
+            line-height: 1.8;
+            font-size: 1.1em;
+        }
+
+        /* Analysis results styling */
+        .analysis-content h2 {
+            color: #2c3e50;
+            margin: 25px 0 15px 0;
+            font-size: 1.6em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+
+        .analysis-content h3 {
+            color: #667eea;
+            margin: 20px 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .analysis-content h4 {
+            color: #2c3e50;
+            margin: 15px 0 8px 0;
+        }
+
+        .analysis-content p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .analysis-content ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .analysis-content li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2.2em;
+            }
+
+            .example-buttons {
+                justify-content: center;
+            }
+
+            .example-btn {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>חיפוש בתורת חב״ד</h1>
+            <p class="subtitle">Chabad Torah Search Interface</p>
+            <p>Search and analyze concepts across the complete Chabad literary corpus</p>
+            <p class="hebrew">חפש ונתח מושגים בכל הספרות החסידית</p>
+            <span class="demo-badge">✅ Working Demo</span>
+        </div>
+
+        <div class="server-status" id="serverStatus">
+            <div class="status-indicator"></div>
+            <span>CORS Proxy Server: Checking connection...</span>
+        </div>
+
+        <div class="info-panel">
+            <h4>🚀 How This Demo Works</h4>
+            <p>This interface replicates our בנין המלכות analysis process:</p>
+            <ol style="padding-left: 20px; margin-top: 10px;">
+                <li>Simulates searching through the Chabad corpus</li>
+                <li>Uses Claude AI to analyze concepts comprehensively</li>
+                <li>Provides explanations in Hebrew, Yiddish, and English</li>
+                <li>Shows exact discourse titles (ד״ה) and source attribution</li>
+            </ol>
+        </div>
+
+        <div class="search-section">
+            <div class="api-key-section">
+                <h3>🔑 Configuration</h3>
+                <div class="form-group">
+                    <label for="apiKey">Claude API Key:</label>
+                    <input type="password" id="apiKey" class="api-key-input" placeholder="sk-ant-api03-...">
+                    <small>Get your API key from <a href="https://console.anthropic.com/" target="_blank" style="color: #ffeaa7;">console.anthropic.com</a></small>
+                </div>
+            </div>
+
+            <form id="searchForm">
+                <div class="form-group">
+                    <label for="searchTerm">🔍 Search Term (Hebrew/English):</label>
+                    <input type="text" id="searchTerm" class="search-input" placeholder="e.g., בנין המלכות, tikkun olam, divine service" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="searchContext">📝 Additional Context (optional):</label>
+                    <textarea id="searchContext" rows="3" placeholder="Provide additional context about what you're looking for..."></textarea>
+                </div>
+
+                <div class="examples">
+                    <h4>💡 Example Searches:</h4>
+                    <div class="example-buttons">
+                        <button type="button" class="example-btn" onclick="setSearch('בנין המלכות')">בנין המלכות</button>
+                        <button type="button" class="example-btn" onclick="setSearch('יחודא עלאה ותתאה')">יחודא עלאה ותתאה</button>
+                        <button type="button" class="example-btn" onclick="setSearch('אור וכלי')">אור וכלי</button>
+                        <button type="button" class="example-btn" onclick="setSearch('עבודה בגשמיות')">עבודה בגשמיות</button>
+                        <button type="button" class="example-btn" onclick="setSearch('התקשרות')">התקשרות</button>
+                        <button type="button" class="example-btn" onclick="setSearch('תיקון עולם')">תיקון עולם</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="searchBtn">🔍 Search Chabad Literature</button>
+            </form>
+        </div>
+
+        <div id="loadingSection" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <h3>🤖 Analyzing with Claude AI...</h3>
+            <p>Generating comprehensive analysis of Chabad teachings</p>
+        </div>
+
+        <div id="resultsSection" style="display: none;"></div>
+        <div id="errorSection" style="display: none;"></div>
+    </div>
+
+    <script>
+        class ChabadSearchWorking {
+            constructor() {
+                this.apiKey = localStorage.getItem('claude_api_key_working') || '';
+                this.proxyUrl = 'http://localhost:3001/claude';
+                this.initializeEventListeners();
+                this.loadSavedApiKey();
+                this.checkServerStatus();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('searchForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.performSearch();
+                });
+
+                document.getElementById('apiKey').addEventListener('change', (e) => {
+                    this.apiKey = e.target.value;
+                    localStorage.setItem('claude_api_key_working', this.apiKey);
+                });
+            }
+
+            loadSavedApiKey() {
+                if (this.apiKey) {
+                    document.getElementById('apiKey').value = this.apiKey;
+                }
+            }
+
+            async checkServerStatus() {
+                try {
+                    const response = await fetch('http://localhost:3001/health');
+                    if (response.ok) {
+                        document.getElementById('serverStatus').innerHTML = `
+                            <div class="status-indicator" style="background: #00b894;"></div>
+                            <span>✅ CORS Proxy Server: Connected and ready!</span>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('serverStatus').innerHTML = `
+                        <div class="status-indicator" style="background: #e17055;"></div>
+                        <span>❌ CORS Proxy Server: Not running. Please start with: python3 cors_proxy.py</span>
+                    `;
+                }
+            }
+
+            async performSearch() {
+                const searchTerm = document.getElementById('searchTerm').value.trim();
+                const searchContext = document.getElementById('searchContext').value.trim();
+
+                if (!this.apiKey) {
+                    this.showError('Please provide your Claude API key to perform searches.');
+                    return;
+                }
+
+                if (!searchTerm) {
+                    this.showError('Please enter a search term.');
+                    return;
+                }
+
+                this.showLoading();
+                this.hideError();
+                this.hideResults();
+
+                try {
+                    const analysis = await this.analyzeWithClaude(searchTerm, searchContext);
+                    this.displayResults(analysis, searchTerm);
+                } catch (error) {
+                    this.showError(`Error: ${error.message}`);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async analyzeWithClaude(searchTerm, context) {
+                const prompt = `You are an expert in Chabad Chassidic literature and Jewish mysticism.
+
+Please provide a comprehensive analysis of the concept "${searchTerm}" as understood in Chabad Torah.
+${context ? `Additional context: ${context}` : ''}
+
+Based on your knowledge of Chabad literature, please structure your response as follows:
+
+## 🔍 Overview
+Brief overview of how "${searchTerm}" is understood in Chabad Torah.
+
+## 📚 Main Explanations
+Identify the 2-3 main approaches/explanations found in Chabad texts:
+
+### 1. [First Main Explanation]
+- **Core Concept**:
+- **Key Sources**: [Include specific discourse titles like ד״ה...]
+- **Explanation**:
+
+### 2. [Second Main Explanation]
+- **Core Concept**:
+- **Key Sources**: [Include specific discourse titles]
+- **Explanation**:
+
+### 3. [Third Main Explanation]
+- **Core Concept**:
+- **Key Sources**: [Include specific discourse titles]
+- **Explanation**:
+
+## 👥 Analysis by Author
+How different Chabad leaders (Alter Rebbe, Mitteler Rebbe, Tzemach Tzedek, Rayatz, the Rebbe) approached this concept.
+
+## 🌐 Explanations in Three Languages
+
+### Hebrew - בעברית
+<div class="hebrew-text" dir="rtl">
+[Brief explanation in Hebrew - make this substantive and detailed]
+</div>
+
+### Yiddish - אויף יידיש
+<div class="yiddish-text" dir="rtl">
+[Brief explanation in Yiddish - make this substantive and detailed]
+</div>
+
+### English
+[Brief comprehensive explanation in English]
+
+Please provide detailed, scholarly analysis based on authentic Chabad teachings. Include specific discourse titles where possible.`;
+
+                try {
+                    const response = await fetch(this.proxyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            api_key: this.apiKey,
+                            prompt: prompt
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Request failed: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data.content[0].text;
+
+                } catch (error) {
+                    if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+                        throw new Error('Cannot connect to proxy server. Please ensure cors_proxy.py is running on port 3001.');
+                    }
+                    throw new Error(`Claude API Error: ${error.message}`);
+                }
+            }
+
+            displayResults(analysis, searchTerm) {
+                const resultsSection = document.getElementById('resultsSection');
+                resultsSection.innerHTML = `
+                    <div class="results">
+                        <h2>🔍 Analysis Results for: "${searchTerm}"</h2>
+                        <div class="result-stats">
+                            ✨ Comprehensive analysis by Claude AI • Based on Chabad literature knowledge
+                        </div>
+                        <div class="analysis-content">
+                            ${analysis}
+                        </div>
+                        <div style="margin-top: 30px; text-align: center; color: #7f8c8d; border-top: 2px solid #667eea; padding-top: 20px;">
+                            <p><strong>✅ Analysis Complete</strong></p>
+                            <p><small>Generated by Claude AI • ${new Date().toLocaleString()}</small></p>
+                        </div>
+                    </div>
+                `;
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showLoading() {
+                document.getElementById('loadingSection').style.display = 'block';
+                document.getElementById('searchBtn').disabled = true;
+                document.getElementById('searchBtn').innerHTML = '🔄 Analyzing...';
+            }
+
+            hideLoading() {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('searchBtn').innerHTML = '🔍 Search Chabad Literature';
+            }
+
+            showError(message) {
+                const errorSection = document.getElementById('errorSection');
+                errorSection.innerHTML = `<div class="error">❌ ${message}</div>`;
+                errorSection.style.display = 'block';
+                errorSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            hideError() {
+                document.getElementById('errorSection').style.display = 'none';
+            }
+
+            hideResults() {
+                document.getElementById('resultsSection').style.display = 'none';
+            }
+        }
+
+        // Global functions for example buttons
+        function setSearch(term) {
+            document.getElementById('searchTerm').value = term;
+        }
+
+        // Initialize the demo
+        let searchDemo;
+        document.addEventListener('DOMContentLoaded', () => {
+            searchDemo = new ChabadSearchWorking();
+        });
+    </script>
+</body>
+</html>

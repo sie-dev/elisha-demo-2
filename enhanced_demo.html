@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chabad Torah Search - Enhanced Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.8em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .status.connected {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .search-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .examples {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .examples h3 {
+            margin-bottom: 15px;
+        }
+
+        .example-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .example-query {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .example-query:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .results {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #ff7675, #d63031);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .hebrew {
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            direction: rtl;
+            text-align: right;
+            line-height: 1.8;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-right: 4px solid #667eea;
+        }
+
+        .result-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .result-section h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .source-info {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+            color: #2c3e50;
+        }
+
+        .search-stats {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2.2em;
+            }
+
+            .search-section, .results {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Chabad Torah Search</h1>
+            <p class="subtitle">Real-Time Analysis of Chassidic Literature Dataset</p>
+            <p>Comprehensive search across your complete Chabad uploads collection</p>
+            <div id="serverStatus" class="status disconnected">❌ Checking server connection...</div>
+        </div>
+
+        <div class="search-section">
+            <div class="examples">
+                <h3>🎯 Example Searches</h3>
+                <p>Click any example below to search the actual Chabad dataset:</p>
+                <div class="example-queries">
+                    <div class="example-query" onclick="setQuery('בנין המלכות')">בנין המלכות</div>
+                    <div class="example-query" onclick="setQuery('ברכת כהנים')">ברכת כהנים</div>
+                    <div class="example-query" onclick="setQuery('ששים גבורים')">ששים גבורים</div>
+                    <div class="example-query" onclick="setQuery('דיבור הפנימי')">דיבור הפנימי</div>
+                    <div class="example-query" onclick="setQuery('divine kingship')">Divine Kingship</div>
+                    <div class="example-query" onclick="setQuery('priestly blessing')">Priestly Blessing</div>
+                </div>
+            </div>
+
+            <form id="searchForm">
+                <div class="form-group">
+                    <label for="searchQuery">🔍 Search Query:</label>
+                    <input type="text" id="searchQuery" placeholder="Enter a concept in Hebrew or English (e.g., בנין המלכות, divine kingship)" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="searchContext">📚 Additional Context (Optional):</label>
+                    <textarea id="searchContext" rows="3" placeholder="Provide additional context or specific aspects you want to explore..."></textarea>
+                </div>
+
+                <button type="submit" class="search-button" id="searchButton">
+                    🔍 Search Chabad Dataset
+                </button>
+            </form>
+        </div>
+
+        <div id="results" class="results">
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        class ChabadSearchEnhanced {
+            constructor() {
+                this.searchUrl = 'http://localhost:3001/search';
+                this.healthUrl = 'http://localhost:3001/health';
+                this.initializeEventListeners();
+                this.checkServerStatus();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('searchForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.performSearch();
+                });
+            }
+
+            async checkServerStatus() {
+                try {
+                    const response = await fetch(this.healthUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.dataset_accessible) {
+                            document.getElementById('serverStatus').textContent = '✅ Connected to server & dataset';
+                        } else {
+                            document.getElementById('serverStatus').textContent = '⚠️ Server connected, dataset not accessible';
+                        }
+                        document.getElementById('serverStatus').className = 'status connected';
+                    } else {
+                        throw new Error('Server not responding');
+                    }
+                } catch (error) {
+                    document.getElementById('serverStatus').textContent = '❌ Server connection failed';
+                    document.getElementById('serverStatus').className = 'status disconnected';
+                }
+            }
+
+            async performSearch() {
+                const query = document.getElementById('searchQuery').value.trim();
+                const context = document.getElementById('searchContext').value.trim();
+
+                if (!query) {
+                    this.showError('Please enter a search query.');
+                    return;
+                }
+
+                const searchButton = document.getElementById('searchButton');
+                const resultsDiv = document.getElementById('results');
+                const resultsContent = document.getElementById('resultsContent');
+
+                // Show loading state
+                searchButton.disabled = true;
+                searchButton.textContent = '🔍 Searching dataset...';
+                resultsDiv.style.display = 'block';
+                resultsContent.innerHTML = '<div class="loading">🔍 Searching Chabad dataset for: ' + query + '...<br>This may take a moment...</div>';
+
+                try {
+                    const response = await fetch(this.searchUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: query,
+                            context: context
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || `Search failed: ${response.status}`);
+                    }
+
+                    this.displayResults(data);
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    this.showError(`Search failed: ${error.message}`);
+                } finally {
+                    searchButton.disabled = false;
+                    searchButton.textContent = '🔍 Search Chabad Dataset';
+                }
+            }
+
+            displayResults(data) {
+                const resultsContent = document.getElementById('resultsContent');
+
+                let html = `
+                    <div class="search-stats">
+                        <strong>📊 Search Results:</strong> Found ${data.search_results_count || 0} matches for "${data.query}"
+                    </div>
+                `;
+
+                if (data.analysis && data.analysis.content && data.analysis.content[0]) {
+                    html += `
+                        <div class="result-section">
+                            <h4>🎯 Analysis Results</h4>
+                            <div style="white-space: pre-wrap; line-height: 1.6;">${this.formatContent(data.analysis.content[0].text)}</div>
+                        </div>
+                    `;
+                }
+
+                // Debug section (can be hidden in production)
+                if (data.raw_search_results && data.raw_search_results.length > 0) {
+                    html += `
+                        <details style="margin-top: 20px;">
+                            <summary style="cursor: pointer; font-weight: bold;">🔧 Raw Search Results (Debug)</summary>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;">
+                                ${data.raw_search_results.map((result, i) =>
+                                    `<div style="margin-bottom: 10px;"><strong>Result ${i+1} (${result.source}):</strong><br>${this.escapeHtml(result.content.substring(0, 500))}...</div>`
+                                ).join('')}
+                            </div>
+                        </details>
+                    `;
+                }
+
+                resultsContent.innerHTML = html;
+            }
+
+            formatContent(content) {
+                // Basic formatting to make the content more readable
+                return this.escapeHtml(content)
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/^/, '<p>')
+                    .replace(/$/, '</p>');
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showError(message) {
+                const resultsDiv = document.getElementById('results');
+                const resultsContent = document.getElementById('resultsContent');
+
+                resultsDiv.style.display = 'block';
+                resultsContent.innerHTML = `<div class="error">⚠️ ${message}</div>`;
+            }
+        }
+
+        // Initialize the search interface
+        const searchInterface = new ChabadSearchEnhanced();
+
+        // Helper function for example queries
+        function setQuery(query) {
+            document.getElementById('searchQuery').value = query;
+        }
+    </script>
+</body>
+</html>
