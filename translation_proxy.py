@@ -66,14 +66,25 @@ def get_file_chunks(filepath, chunk_size=2000):
 def translate_chunk(chunk_text, target_language='English'):
     """Translate a chunk using Claude"""
     try:
-        prompt = f"""Please translate the following Hebrew/Aramaic text from Chassidic literature to {target_language}.
+        prompt = f"""אתה מתרגם מומחה של ספרות חסידית חב"ד. תרגם את הקטע הבא ל{target_language}:
 
-Maintain the scholarly and spiritual tone. If there are technical Kabbalistic or Chassidic terms, provide both the transliteration and explanation.
-
-Text to translate:
 {chunk_text}
 
-Provide a clear, readable translation that preserves the meaning and reverence of the original."""
+**הנחיות לתרגום:**
+
+1. **טון אקדמי-רוחני:** שמור על הטון המלומד והרוחני של המקור החסידי
+2. **מונחים טכניים:** עבור מונחי קבלה וחסידות - ספק הן את התעתיק והן הסבר קצר
+   - דוגמאות: ספירות, צמצום, ביטול, התבוננות, עבודת הברירות
+3. **אותנטיות:** שמור על המשמעות המקורית ועל כבוד הטקסט
+4. **בהירות:** תרגם בצורה ברורה וקריאה לקוראים שאינם בקיאים בטקסטים חסידיים
+5. **הקשר מערכתי:** הסבר קשרים לרעיונות מרכזיים בחב"ד כמו אחדות הוי' ויחודו
+
+**פורמט התרגום:**
+- תרגום ראשי ברור
+- הערות הסבר בסוגריים [אם נדרש]
+- גלוסריום למונחים מיוחדים
+
+התמקד בהעברת הלימוד החסידי העמוק תוך שמירה על כבוד הטקסט המקודש."""
 
         response = requests.post(
             'https://api.anthropic.com/v1/messages',
@@ -197,11 +208,25 @@ def search_and_analyze():
             }), 404
 
         # Build prompt for Claude analysis
-        prompt = f"""Found results for "{query}" in Chabad dataset:
+        prompt = f"""אתה מומחה בתורת חב"ד ובפילוסופיה חסידית. נמצאו תוצאות לחיפוש "{query}" במאגר החסידי:
 
 {search_results[0]['content']}
 
-Provide analysis in Hebrew, Yiddish, and English with proper source citations."""
+אנא ספק ניתוח מקיף כדלקמן:
+
+**בעברית:** הסבר מעמיק על המושג "{query}" על פי מקורות חב"ד, כולל:
+- הקשר למערכת הספירות
+- השלכות עבודת ה' האישית
+- קישורים לנושאים נוספים במערכת החסידית
+
+**באנגלית:** Detailed scholarly analysis including:
+- Theological significance in Chabad philosophy
+- Connection to core Kabbalistic concepts
+- Practical implications for divine service
+
+**ציטוטים:** ציין בבירור מהם הד"ה (דיבור המתחיל) ומקורות אחרים הנזכרים בקטע.
+
+התמקד במשמעות הרוחנית העמוקה ובחיבור למערכת החסידית הכוללת."""
 
         # Send to Claude
         response = requests.post(
