@@ -434,9 +434,13 @@ def api_search():
         # Initialize services
         global search_service, analyzer
 
-        # Check for environment variables first (Railway), then fallback to local paths
-        sichos_file = os.environ.get('SICHOS_FILE', "/Users/elishapearl/Downloads/sichos_structured (4).json")
-        maamarim_file = os.environ.get('MAAMARIM_FILE', "/Users/elishapearl/Downloads/maamarim_structured (2).json")
+        # Check for environment variables first (Railway), then fallback to repo data, then local
+        sichos_file = os.environ.get('SICHOS_FILE',
+            'data/sichos.json' if Path('data/sichos.json').exists()
+            else "/Users/elishapearl/Downloads/sichos_structured (4).json")
+        maamarim_file = os.environ.get('MAAMARIM_FILE',
+            'data/maamarim.json' if Path('data/maamarim.json').exists()
+            else "/Users/elishapearl/Downloads/maamarim_structured (2).json")
 
         if search_service is None:
             logger.info("Initializing search service...")
@@ -557,8 +561,12 @@ def api_search():
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
-    sichos_file = Path(os.environ.get('SICHOS_FILE', "/Users/elishapearl/Downloads/sichos_structured (4).json"))
-    maamarim_file = Path(os.environ.get('MAAMARIM_FILE', "/Users/elishapearl/Downloads/maamarim_structured (2).json"))
+    sichos_file = Path(os.environ.get('SICHOS_FILE',
+        'data/sichos.json' if Path('data/sichos.json').exists()
+        else "/Users/elishapearl/Downloads/sichos_structured (4).json"))
+    maamarim_file = Path(os.environ.get('MAAMARIM_FILE',
+        'data/maamarim.json' if Path('data/maamarim.json').exists()
+        else "/Users/elishapearl/Downloads/maamarim_structured (2).json"))
 
     sichos_exists = sichos_file.exists()
     maamarim_exists = maamarim_file.exists()
