@@ -59,28 +59,69 @@ Navigate to: **http://localhost:8080**
 
 ## For Sharing / Deployment
 
-### Environment Variables
-Always use environment variables for sensitive data:
+### **Option 1: GitHub Pages (FREE) ⭐ RECOMMENDED**
+
+The site is already configured for GitHub Pages!
+
+**Steps:**
+1. Go to your repo: https://github.com/sie-dev/elisha-demo-2
+2. Settings → Pages
+3. Source: Deploy from branch `gh-pages`
+4. Click Save
+
+Your site will be live at: **https://sie-dev.github.io/elisha-demo-2/**
+
+**Note:** You still need the backend deployed separately (see Option 2).
+
+---
+
+### **Option 2: Deploy Backend to Railway**
+
+**Quick Deploy:**
+1. Go to https://railway.app
+2. "New Project" → "Deploy from GitHub"
+3. Select `sie-dev/elisha-demo-2`
+4. Add environment variable: `ANTHROPIC_API_KEY=your_key`
+5. Upload your JSON files to Railway or use S3/URL
+6. Update `server.py` with JSON file paths
+
+Railway will give you a URL like: `https://your-app.up.railway.app`
+
+**Update the frontend:**
+Edit `index.html` line 533 with your Railway URL.
+
+---
+
+### **Option 3: Full Local Deployment**
 
 ```bash
 # Local development
 export ANTHROPIC_API_KEY="sk-ant-..."
+python3 server.py
 
-# Or create .env file (never commit this!)
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+# Open in browser
+http://localhost:8080
 ```
 
-### Deploy to Cloud
+---
 
-**Railway / Render / Heroku:**
-1. Add `ANTHROPIC_API_KEY` as environment variable in dashboard
-2. Upload your JSON data files
-3. Update file paths in `server.py`
-4. Deploy!
+### **Complete Setup (GitHub Pages + Railway)**
 
-**GitHub Pages** (Frontend only):
-- Won't work fully as GitHub Pages doesn't support Python backend
-- Consider using Railway for backend + GitHub Pages for static demo
+1. **Backend on Railway:**
+   - Deploy `server.py`
+   - Add API key to environment
+   - Upload JSON files
+   - Get Railway URL
+
+2. **Frontend on GitHub Pages:**
+   - Already configured!
+   - Auto-detects Railway backend
+   - Enable in GitHub Settings → Pages
+
+3. **Result:**
+   - Public site: `https://sie-dev.github.io/elisha-demo-2/`
+   - Backend: `https://your-app.up.railway.app`
+   - Works together automatically!
 
 ---
 
