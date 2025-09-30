@@ -1,210 +1,198 @@
-# Chabad Torah Search Interface
+# AI חברותא - Unified Chat Interface
+### Conversational AI for Sichos and Maamarim תשל״ה
 
-AI-powered search and analysis tool for Chabad Chassidic literature, featuring real-time dataset search with Claude Sonnet 4 integration.
-
-## Features
-
-- **Comprehensive Search**: Search through 75+ JSON files containing works from all Chabad leaders
-- **AI-Powered Analysis**: Uses Claude AI to analyze and explain concepts in context
-- **Multi-Language Support**: Provides explanations in Hebrew, Yiddish, and English
-- **Source Attribution**: Shows exact discourse titles (ד״ה) and source information
-- **Real-time Processing**: Fast search using ripgrep with intelligent filtering
-
-## Replicates Our Analysis
-
-This interface replicates the exact process we used to analyze בנין המלכות:
-
-1. **File Discovery**: Uses `ripgrep` to find files containing the search term
-2. **Chunk Extraction**: Extracts relevant text chunks with metadata
-3. **AI Analysis**: Uses Claude to identify main explanations and provide multilingual summaries
-4. **Source Attribution**: Maintains exact ד״ה titles and authorship information
-
-## Setup Instructions
-
-### Prerequisites
-
-- Python 3.8+
-- `ripgrep` (rg) installed on your system
-- Claude API key from Anthropic
-- Access to the Chabad uploads dataset
-
-### Install ripgrep
-
-**macOS:**
-```bash
-brew install ripgrep
-```
-
-**Linux:**
-```bash
-# Ubuntu/Debian
-sudo apt install ripgrep
-
-# Other distributions
-curl -LO https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ripgrep_13.0.0_amd64.deb
-sudo dpkg -i ripgrep_13.0.0_amd64.deb
-```
-
-### Installation
-
-1. **Clone/Download the files:**
-   ```bash
-   cd /Users/elishapearl/chabad_search_interface
-   ```
-
-2. **Install Python dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Make the server executable:**
-   ```bash
-   chmod +x server.py
-   ```
-
-## Usage
-
-### Option 1: Full Backend (Recommended)
-
-1. **Start the Flask server:**
-   ```bash
-   python server.py
-   ```
-
-2. **Open your browser to:**
-   ```
-   http://localhost:5000
-   ```
-
-3. **Configure the interface:**
-   - Enter your Claude API key
-   - Set the dataset path (default: `/Users/elishapearl/Library/CloudStorage/Dropbox/chabad-uploads`)
-   - Choose max results (5-20)
-
-4. **Search and analyze:**
-   - Enter a Hebrew or English search term
-   - Add optional context
-   - Click "Search Chabad Literature"
-
-### Option 2: Frontend Only
-
-Open `index.html` directly in your browser for a simpler version that makes direct API calls to Claude (requires CORS handling).
-
-## Example Searches
-
-- **בנין המלכות** - Building of Divine Kingship
-- **יחודא עלאה ותתאה** - Upper and Lower Unity
-- **אור וכלי** - Light and Vessels
-- **עבודה בגשמיות** - Divine Service in Physicality
-- **תיקון עולם** - Rectifying the World
-
-## How It Works
-
-### Backend Architecture
-
-1. **Search Service** (`ChabadSearchService`):
-   - Uses ripgrep for fast file searching
-   - Extracts JSON chunks with metadata preservation
-   - Determines authorship from file paths and metadata
-
-2. **Analysis Service** (`ChabadAnalyzer`):
-   - Formats search results for Claude analysis
-   - Generates comprehensive explanations
-   - Provides multilingual summaries
-
-3. **Flask API**:
-   - `/api/search` - Main search endpoint
-   - `/api/health` - Health check
-   - `/` - Serves the web interface
-
-### Search Process
-
-```
-User Input → File Discovery (ripgrep) → Chunk Extraction →
-Claude Analysis → Formatted Results → Web Display
-```
-
-## Configuration
-
-### Environment Variables
-
-- `PORT` - Server port (default: 5000)
-
-### Dataset Structure Expected
-
-The system expects JSON files in this structure:
-```json
-{
-  "book_name_he": "ספר המאמרים מלוקט",
-  "book_name_en": "Sefer HaMaamarim — Melukat",
-  "chunks": [
-    {
-      "chunk_id": 1,
-      "chunk_metadata": {
-        "chunk_title": "...",
-        "maamar": "ד\"ה יבחר לנו את נחלתינו תשכ\"ג",
-        "seif": "א"
-      },
-      "text": "..."
-    }
-  ]
-}
-```
-
-## Security Notes
-
-- API keys are stored locally in browser localStorage
-- API keys are only sent to Claude's servers for analysis
-- No data is logged or stored on the server
-- All processing is done locally except for Claude API calls
-
-## Limitations
-
-- Requires local access to the Chabad uploads dataset
-- Claude API usage costs apply
-- Search limited to exact term matches (not semantic search)
-- Response time depends on dataset size and Claude API latency
-
-## Troubleshooting
-
-### "ripgrep not found" error
-Install ripgrep using your package manager (see prerequisites)
-
-### "Dataset path does not exist" error
-Verify the path to your Chabad uploads directory and update in the interface
-
-### "Claude API error" error
-Check your API key and ensure it has sufficient credits
-
-### Slow searches
-- Reduce max results
-- Use more specific search terms
-- Ensure ripgrep is properly installed
-
-## Technical Details
-
-### Dependencies
-- **Flask**: Web framework
-- **anthropic**: Claude API client
-- **ripgrep**: Fast text search
-- **pathlib**: Path handling
-- **json**: JSON processing
-
-### Performance
-- Typical search: 2-10 seconds
-- File discovery: <1 second (ripgrep)
-- Claude analysis: 5-30 seconds depending on complexity
-- Memory usage: ~50MB for typical searches
-
-## Future Enhancements
-
-- Semantic search capabilities
-- Result caching
-- Export functionality
-- Advanced filtering options
-- Multi-term search queries
-- Search history
+A unified chat interface that combines search and conversation with AI-powered analysis of Chabad Chassidic texts. Ask questions, get comprehensive answers with full source texts, and engage in follow-up discussions - all in **Hebrew**, **Yiddish**, or **English**.
 
 ---
 
-**Created to replicate the comprehensive analysis process used for בנין המלכות research**
+## 🎯 Features
+
+### **💬 Unified Chat Experience**
+- Single conversation interface for all interactions
+- Ask questions naturally, search for concepts, or request explanations
+- Full conversation history maintained for contextual follow-ups
+- Beautiful, modern chat UI with smooth animations
+
+### **🤖 Intelligent AI Analysis**
+- Flowing, essay-style explanations (not bullet points)
+- Comprehensive concept overviews
+- Main ideas explained in natural language
+- Tri-lingual explanations (Hebrew, Yiddish, English)
+- Related concepts and connections
+- Practical applications (למעשה)
+
+### **📖 Complete Source Access**
+- **Full chunk texts** included with every response
+- Collapsible source sections with complete Hebrew text
+- Exact citations (type, seif/perek, title)
+- No truncation - see the entire source material
+- Up to 10 most relevant sources per query
+
+### **📚 Complete Corpus**
+- 324 Sichos chunks from תשל״ה
+- 80 Maamarim chunks from תשל״ה
+- 404 total sources searchable
+
+### **🌍 Multilingual**
+- Query in Hebrew (עברית), Yiddish (אידיש), or English
+- Smart language detection
+- Natural conversation in your preferred language
+
+---
+
+## 📋 Prerequisites
+
+- **Python 3.8+**
+- **pip** (Python package installer)
+- The two data files:
+  - `/Users/elishapearl/Downloads/sichos_structured (4).json`
+  - `/Users/elishapearl/Downloads/maamarim_structured (2).json`
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+
+```bash
+pip3 install flask flask-cors anthropic
+```
+
+### 2. Run the Server
+
+```bash
+cd /Users/elishapearl/chabad_search_interface
+./run.sh
+```
+
+Or run directly:
+
+```bash
+python3 server.py
+```
+
+### 3. Open in Browser
+
+Navigate to: **http://localhost:8080**
+
+---
+
+## 📖 Usage Examples
+
+Just type naturally in the chat! The AI understands:
+
+### **Questions**
+- `מה זה "משתשקע החמה"?`
+- `הסבר את הקשר בין שבת וחנוכה`
+- `What is malchus according to the Rebbe?`
+
+### **Concept Searches**
+- `בת ציון`
+- `מלכות`
+- `אתהפכא`
+
+### **Follow-up Questions**
+After getting an answer, you can ask:
+- `תן לי עוד דוגמאות`
+- `מה הקשר לחסידות?`
+- `Can you explain that in simpler terms?`
+
+### **Try the Suggestion Chips**
+Click any suggestion on the welcome screen to start:
+- "מה זה משתשקע החמה?"
+- "הקשר בין שבת וחנוכה"
+- "מה זו בת ציון?"
+
+---
+
+## 🏗️ Architecture
+
+### Backend (Flask)
+- **`server.py`**: Main Flask application
+  - `ChabadSearchService`: Loads and searches JSON files
+  - `ChabadAnalyzer`: Interfaces with Claude AI for analysis
+  - API endpoints:
+    - `/api/health`: Check server and data file status
+    - `/api/search`: Search and analyze texts
+
+### Frontend (HTML/JavaScript)
+- **`index.html`**: Single-page application
+  - Search panel: Direct text search
+  - Chat panel: Conversational AI interface
+  - Real-time server status indicator
+
+### Data Format
+
+The JSON files contain structured Chabad texts with chunks for easy searching and retrieval.
+
+---
+
+## 🔧 Configuration
+
+### API Key
+
+The system includes a hardcoded Anthropic API key for AI analysis. To use your own key:
+
+1. Open `index.html`
+2. Find the `anthropic_api_key` field in the fetch calls
+3. Replace with your API key
+
+Or set as demo mode by using `"demo_key"` (shows raw results without AI analysis).
+
+### File Paths
+
+To use different JSON files, edit `server.py`:
+
+```python
+sichos_file = "/path/to/your/sichos.json"
+maamarim_file = "/path/to/your/maamarim.json"
+```
+
+### Port
+
+Default port is **8080**. To change, edit `server.py` and `index.html`.
+
+---
+
+## 🧪 Testing
+
+Run the test script to verify functionality:
+
+```bash
+python3 test_search.py
+```
+
+This tests Hebrew search terms and system responsiveness.
+
+---
+
+## 🐛 Troubleshooting
+
+### Server Won't Start
+
+**Error: "Address already in use"**
+- On macOS, disable AirPlay Receiver in System Preferences
+- Or use a different port: `PORT=8081 python3 server.py`
+
+### Files Not Found
+
+Verify the file paths in `server.py` and check that the JSON files exist.
+
+### No Search Results
+
+- Verify search term spelling
+- Try broader terms (e.g., "שבת" instead of "שבת קודש")
+- Check server logs
+
+---
+
+## 📧 Support
+
+For questions or issues:
+1. Check the troubleshooting section
+2. Review the server logs
+3. Test with `test_search.py`
+
+---
+
+**בהצלחה! Good luck with your learning!**
