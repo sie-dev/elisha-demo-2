@@ -461,8 +461,13 @@
         // Check server status
         async function checkServerStatus() {
             const statusBadge = document.getElementById('statusBadge');
+
+            const API_BASE = window.location.hostname === 'localhost'
+                ? 'http://localhost:8080'
+                : 'https://elisha-demo-2-production.up.railway.app';
+
             try {
-                const response = await fetch('http://localhost:8080/api/health');
+                const response = await fetch(`${API_BASE}/api/health`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.dataset_accessible) {
@@ -527,7 +532,12 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
-                const response = await fetch('http://localhost:8080/api/search', {
+                // Use Railway backend URL or localhost for development
+                const API_URL = window.location.hostname === 'localhost'
+                    ? 'http://localhost:8080/api/search'
+                    : 'https://elisha-demo-2-production.up.railway.app/api/search';
+
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
