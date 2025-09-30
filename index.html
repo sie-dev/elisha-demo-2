@@ -464,7 +464,7 @@
 
             const API_BASE = window.location.hostname === 'localhost'
                 ? 'http://localhost:8080'
-                : 'https://elisha-demo-2-production.up.railway.app';
+                : 'https://web-production-bd2b.up.railway.app';
 
             try {
                 const response = await fetch(`${API_BASE}/api/health`);
@@ -535,7 +535,7 @@
                 // Use Railway backend URL or localhost for development
                 const API_URL = window.location.hostname === 'localhost'
                     ? 'http://localhost:8080/api/search'
-                    : 'https://elisha-demo-2-production.up.railway.app/api/search';
+                    : 'https://web-production-bd2b.up.railway.app/api/search';
 
                 const response = await fetch(API_URL, {
                     method: 'POST',
