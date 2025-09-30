@@ -431,14 +431,21 @@ def api_search():
         if not search_term:
             return jsonify({'error': 'Search term is required'}), 400
 
-        # Initialize services with hardcoded file paths
+        # Initialize services
         global search_service, analyzer
 
-        sichos_file = "/Users/elishapearl/Downloads/sichos_structured (4).json"
-        maamarim_file = "/Users/elishapearl/Downloads/maamarim_structured (2).json"
+        # Check for environment variables first (Railway), then fallback to repo data, then local
+        sichos_file = os.environ.get('SICHOS_FILE',
+            'data/sichos.json' if Path('data/sichos.json').exists()
+            else "/Users/elishapearl/Downloads/sichos_structured (4).json")
+        maamarim_file = os.environ.get('MAAMARIM_FILE',
+            'data/maamarim.json' if Path('data/maamarim.json').exists()
+            else "/Users/elishapearl/Downloads/maamarim_structured (2).json")
 
         if search_service is None:
             logger.info("Initializing search service...")
+            logger.info(f"Sichos file: {sichos_file}")
+            logger.info(f"Maamarim file: {maamarim_file}")
             search_service = ChabadSearchService(sichos_file, maamarim_file)
 
         # Perform search
@@ -554,8 +561,12 @@ def api_search():
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
-    sichos_file = Path("/Users/elishapearl/Downloads/sichos_structured (4).json")
-    maamarim_file = Path("/Users/elishapearl/Downloads/maamarim_structured (2).json")
+    sichos_file = Path(os.environ.get('SICHOS_FILE',
+        'data/sichos.json' if Path('data/sichos.json').exists()
+        else "/Users/elishapearl/Downloads/sichos_structured (4).json"))
+    maamarim_file = Path(os.environ.get('MAAMARIM_FILE',
+        'data/maamarim.json' if Path('data/maamarim.json').exists()
+        else "/Users/elishapearl/Downloads/maamarim_structured (2).json"))
 
     sichos_exists = sichos_file.exists()
     maamarim_exists = maamarim_file.exists()
@@ -564,7 +575,8 @@ def health_check():
         'status': 'healthy',
         'sichos_accessible': sichos_exists,
         'maamarim_accessible': maamarim_exists,
-        'dataset_accessible': sichos_exists and maamarim_exists
+        'dataset_accessible': sichos_exists and maamarim_exists,
+        'environment': 'production' if os.environ.get('RAILWAY_ENVIRONMENT') else 'development'
     })
 
 if __name__ == '__main__':
