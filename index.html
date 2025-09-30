@@ -532,7 +532,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         search_term: message,
-                        context: buildContextFromHistory(),
+                        conversation_history: buildConversationHistory(),
                         anthropic_api_key: 'USE_SERVER_KEY'  // Server will use env variable
                     }),
                     signal: controller.signal
@@ -579,16 +579,25 @@
             input.focus();
         }
 
-        // Build context from conversation history
-        function buildContextFromHistory() {
-            if (conversationHistory.length <= 1) return '';
-
-            const recentHistory = conversationHistory.slice(-4); // Last 2 exchanges
-            const context = recentHistory
-                .map(msg => `${msg.role === 'user' ? 'שאלה' : 'תשובה'}: ${msg.content.substring(0, 200)}`)
-                .join('\n');
-
-            return `זהו המשך שיחה. הקשר הקודם:\n${context}\n\nענה על השאלה החדשה בהתאם להקשר.`;
+        // Build conversation history for API
+        function buildConversationHistory() {
+            // Return last 6 messages (3 exchanges) formatted for Claude
+            const recentHistory = conversationHistory.slice(-6);
+            return recentHistory.map(msg => {
+                // Strip HTML from assistant messages for cleaner history
+                let content = msg.content;
+                if (msg.role === 'assistant' && content.includes('<')) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = content;
+                    content = tempDiv.textContent || content;
+                    // Keep it short - first 500 chars
+                    content = content.substring(0, 500);
+                }
+                return {
+                    role: msg.role,
+                    content: content
+                };
+            });
         }
 
         // Add message to chat

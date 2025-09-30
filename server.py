@@ -259,11 +259,14 @@ class ChabadAnalyzer:
         self.client = anthropic.Anthropic(api_key=anthropic_api_key)
 
     def analyze_search_results(self, search_term: str, results: List[SearchResult],
-                             context: str = '', user_language: str = 'hebrew') -> str:
-        """Use Claude to analyze search results and provide explanations"""
+                             context: str = '', conversation_history: List[Dict] = None) -> str:
+        """Use Claude to analyze search results with conversation context"""
 
-        # Prepare the results for analysis
-        results_text = self._format_results_for_analysis(results)
+        # Use only top 3 for speed
+        top_results = results[:3]
+
+        # Prepare EXCERPTS for Claude analysis (not full text to save time)
+        results_text = self._format_excerpts_for_analysis(top_results)
 
         # Detect if query is in Hebrew, Yiddish, or English
         language_instruction = ""
@@ -274,87 +277,61 @@ class ChabadAnalyzer:
         else:
             language_instruction = "Please respond with explanations in Hebrew, Yiddish (where relevant), and English."
 
-        prompt = f"""You are an expert in Chabad Chassidic literature, specifically the Torah and Maamarim of the Lubavitcher Rebbe.
+        # Build system prompt
+        system_prompt = """אתה חברותא AI מומחה בחסידות חב"ד, במיוחד בשיחות ומאמרים של הרבי מתשל"ה.
 
-I found the following texts related to "{search_term}" in sichos and maamarim from תשל"ה:
+אתה יכול:
+- לענות על שאלות ישירות על מושגים חסידיים
+- להמשיך שיחות ולענות על שאלות המשך
+- להסביר בעברית, אידיש, ואנגלית
+- לתת דוגמאות נוספות ולהעמיק כשמבקשים
+- לקשר בין מושגים שונים
+
+כשעונה:
+- תן הסבר מעמיק ומפורט (4-6 פסקאות)
+- הסבר את הרעיון הפנימי, לא רק הפשט
+- קשר למושגים אחרים בחסידות
+- תן דוגמאות מהמקורות
+- הסבר למעשה בעבודת ה'
+- השתמש ב-HTML עם dir="rtl" וכותרות <h3>
+- אל תכלול את הטקסט המלא של המקורות - הם מתווספים אחרי"""
+
+        # Build messages for conversation
+        messages = []
+
+        # Add conversation history if exists
+        if conversation_history:
+            messages.extend(conversation_history[-6:])  # Last 3 exchanges
+
+        # Check if this is a follow-up question (no search results needed)
+        is_followup = conversation_history and len(conversation_history) > 0 and len(results) == 0
+
+        if is_followup:
+            # Natural conversation without new sources
+            user_message = f"שאלת המשך: {search_term}"
+        else:
+            # New search with sources
+            user_message = f"""שאלה: "{search_term}"
+
+נמצאו {len(top_results)} מקורות רלוונטיים:
 
 {results_text}
 
-{f"Additional context: {context}" if context else ""}
+תן הסבר מעמיק ומפורט (4-6 פסקאות) הכולל:
+- מהו המושג ומה משמעותו
+- העיקרים והרעיונות המרכזיים מהמקורות
+- קשרים למושגים אחרים בחסידות
+- דוגמאות והמחשות
+- למעשה בעבודת ה'"""
 
-{language_instruction}
-
-Please analyze these texts and provide a clear, organized response.
-
-**IMPORTANT FORMATTING INSTRUCTIONS:**
-1. Write flowing, connected paragraphs - NOT bullet points
-2. Present the explanation FIRST as continuous text
-3. List ALL sources with COMPLETE FULL TEXT at the end - DO NOT TRUNCATE OR SUMMARIZE THE SOURCE TEXTS
-4. Use proper HTML formatting with RTL direction for Hebrew/Yiddish
-5. Each source must include its ENTIRE Hebrew text in a collapsible <details> section
-
-**Structure your response like this:**
-
-<div dir="rtl" style="font-family: 'Times New Roman', serif; line-height: 1.8;">
-
-<h3 style="color: #C79A51;">מהו "{search_term}"?</h3>
-
-<p>[Write 2-3 flowing paragraphs explaining the concept clearly and naturally, WITHOUT listing sources inline. Just explain the ideas in connected sentences.]</p>
-
-<h3 style="color: #C79A51;">העיקרים המרכזיים</h3>
-
-<p>[Write flowing paragraphs about the 2-4 main ideas. Present each concept naturally as part of a continuous explanation, not as bullet points.]</p>
-
-<h3 style="color: #C79A51;">הסבר בשלוש לשונות</h3>
-
-<p><strong>בעברית:</strong> [2-3 משפטים בשפה פשוטה וברורה]</p>
-
-<p><strong>אויף יידיש:</strong> [2-3 זאצן אין קלאר יידיש]</p>
-
-<p><strong>English:</strong> [2-3 clear sentences in simple English]</p>
-
-<h3 style="color: #C79A51;">קשרים למושגים אחרים</h3>
-
-<p>[Flowing paragraph about related concepts]</p>
-
-<h3 style="color: #C79A51;">למעשה - בעבודת ה'</h3>
-
-<p>[Flowing paragraph about practical application]</p>
-
-<h3 style="color: #C79A51; margin-top: 2rem;">📖 מקורות מלאים</h3>
-
-<div style="background: #fef9f3; padding: 20px; border-right: 4px solid #C79A51; margin-top: 15px; border-radius: 8px;">
-<p><strong style="font-size: 1.1rem;">המקורות שנמצאו (עם טקסט מלא):</strong></p>
-
-<div style="margin-top: 15px;">
-[For EACH source found, create a collapsible/expandable section with:
-- Source citation (type, title, seif/perek)
-- The COMPLETE Hebrew text of that chunk
-- Format each source clearly separated]
-
-<details open style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-<summary style="cursor: pointer; font-weight: bold; color: #C79A51; padding: 10px;">
-📜 מקור 1: [סוג - Type] • [כותרת - Title] • סעיף [X]
-</summary>
-<div style="padding: 15px; margin-top: 10px; line-height: 1.8; font-family: 'Times New Roman', serif; white-space: pre-wrap;">
-[PASTE THE COMPLETE FULL HEBREW TEXT HERE - COPY IT EXACTLY FROM THE SOURCE DATA I PROVIDED]
-</div>
-</details>
-
-CRITICAL: You MUST create one <details> section for EACH AND EVERY source I provided above (all 5 sources).
-DO NOT summarize or skip any sources. Include the complete text for source 1, source 2, source 3, source 4, AND source 5.
-</div>
-</div>
-
-</div>
-
-Remember: Write naturally and clearly. The explanation should read like a cohesive essay, not a fragmented list."""
+        messages.append({"role": "user", "content": user_message})
 
         try:
             response = self.client.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=8000,  # Increased to fit all 5 sources with full text
-                messages=[{"role": "user", "content": prompt}]
+                max_tokens=3072,  # Increased for deeper analysis
+                system=system_prompt,
+                messages=messages
             )
             return response.content[0].text
         except Exception as e:
@@ -365,8 +342,8 @@ Remember: Write naturally and clearly. The explanation should read like a cohesi
         """Format search results for Claude analysis - FULL CHUNKS"""
         formatted = []
 
-        # Limit to top 5 most relevant results for faster processing
-        top_results = results[:5]
+        # Limit to top 3 most relevant results for faster processing
+        top_results = results[:3]
 
         for i, result in enumerate(top_results, 1):
             # Include metadata for context
@@ -405,6 +382,30 @@ Remember: Write naturally and clearly. The explanation should read like a cohesi
 
         return summary + '\n'.join(formatted)
 
+    def _format_excerpts_for_analysis(self, results: List[SearchResult]) -> str:
+        """Format EXCERPTS for fast Claude analysis"""
+        formatted = []
+
+        for i, result in enumerate(results, 1):
+            metadata = result.metadata
+            source_type = metadata.get('type', '')
+            seif = metadata.get('seif', metadata.get('perek', ''))
+
+            # Use first 800 chars for analysis
+            excerpt = result.text[:800]
+
+            formatted.append(f"""
+מקור {i}:
+סוג: {source_type} | סעיף: {seif}
+כותרת: {result.chunk_title}
+
+קטע: {excerpt}...
+
+---
+""")
+
+        return '\n'.join(formatted)
+
 # Flask API endpoints
 search_service = None
 analyzer = None
@@ -422,6 +423,7 @@ def api_search():
         search_term = data.get('search_term', '').strip()
         context = data.get('context', '').strip()
         max_results = int(data.get('max_results', 15))
+        conversation_history = data.get('conversation_history', [])
 
         # Get API key from environment variable or request
         anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY', data.get('anthropic_api_key', '')).strip()
@@ -486,11 +488,61 @@ def api_search():
         if analyzer is None or analyzer.client.api_key != anthropic_api_key:
             analyzer = ChabadAnalyzer(anthropic_api_key)
 
-        analysis = analyzer.analyze_search_results(search_term, results, context)
+        analysis = analyzer.analyze_search_results(search_term, results, context, conversation_history)
+
+        # Append ALL full sources after AI analysis
+        sources_html = f'<div dir="rtl"><h3 style="color: #C79A51; margin-top: 2rem; border-top: 2px solid #e5e7eb; padding-top: 1rem;">📖 כל המקורות ({len(results)} מקורות)</h3>'
+
+        # Show top 10 sources with full text
+        for i, result in enumerate(results[:10], 1):
+            metadata = result.metadata
+            source_type = metadata.get('type', '')  # שיחה or מאמר
+            seif = metadata.get('seif', metadata.get('perek', ''))
+            farbrengen = metadata.get('farbrengen', '')
+            sicha = metadata.get('sicha', '')
+            maamar_type = metadata.get('maamar_type', '')
+
+            # Build source title based on type
+            if source_type == 'שיחה' and sicha:
+                source_title = f"{sicha}"
+            elif source_type == 'מאמר':
+                # Extract דיבור המתחיל from chunk_title
+                chunk_title = result.chunk_title
+                if 'ד"ה' in chunk_title or 'דה' in chunk_title:
+                    import re
+                    match = re.search(r'(ד[״\"]ה[^/]+)', chunk_title)
+                    if match:
+                        source_title = match.group(1).strip()
+                    else:
+                        source_title = chunk_title.split('//')[-1].split('//')[0].strip()
+                else:
+                    source_title = chunk_title.split('//')[-1].strip()
+            else:
+                source_title = sicha or result.chunk_title
+
+            sources_html += f'''
+<details style="margin: 15px 0; padding: 15px; background: #fef9f3; border-radius: 8px; border-right: 3px solid #C79A51;">
+<summary style="cursor: pointer; font-weight: bold; color: #1f2937; padding: 10px; font-size: 1.05rem;">
+📜 מקור {i}: {source_title} • סעיף {seif}
+</summary>
+<div style="padding: 10px 0; margin-top: 10px;">
+<p style="font-size: 0.9rem; color: #666; margin: 5px 0;"><strong>סוג:</strong> {source_type}{f' ({maamar_type})' if maamar_type else ''}</p>
+<p style="font-size: 0.9rem; color: #666; margin: 5px 0;"><strong>ספר:</strong> {result.work}</p>
+<p style="font-size: 0.9rem; color: #666; margin: 5px 0;"><strong>כותרת מלאה:</strong> {result.chunk_title}</p>
+{f'<p style="font-size: 0.9rem; color: #666; margin: 5px 0;"><strong>פרבענגען:</strong> {farbrengen}</p>' if farbrengen else ''}
+<div style="line-height: 1.9; font-family: 'Times New Roman', serif; font-size: 1.05rem; white-space: pre-wrap; border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 10px;">
+{result.text}
+</div>
+</div>
+</details>
+'''
+
+        sources_html += '</div>'
+        full_response = analysis + sources_html
 
         return jsonify({
             'success': True,
-            'analysis': analysis,
+            'analysis': full_response,
             'result_count': len(results),
             'raw_results_count': len(results)
         })
