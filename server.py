@@ -332,16 +332,17 @@ Please analyze these texts and provide a clear, organized response.
 - The COMPLETE Hebrew text of that chunk
 - Format each source clearly separated]
 
-<details style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+<details open style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
 <summary style="cursor: pointer; font-weight: bold; color: #C79A51; padding: 10px;">
-מקור 1: [Type] - [Title] - סעיף [X]
+📜 מקור 1: [סוג - Type] • [כותרת - Title] • סעיף [X]
 </summary>
-<div style="padding: 15px; margin-top: 10px; line-height: 1.8; font-family: 'Times New Roman', serif;">
-[FULL HEBREW TEXT OF THE CHUNK - do not truncate!]
+<div style="padding: 15px; margin-top: 10px; line-height: 1.8; font-family: 'Times New Roman', serif; white-space: pre-wrap;">
+[PASTE THE COMPLETE FULL HEBREW TEXT HERE - COPY IT EXACTLY FROM THE SOURCE DATA I PROVIDED]
 </div>
 </details>
 
-[Repeat for each source with full text]
+CRITICAL: You MUST create one <details> section for EACH AND EVERY source I provided above (all 5 sources).
+DO NOT summarize or skip any sources. Include the complete text for source 1, source 2, source 3, source 4, AND source 5.
 </div>
 </div>
 
@@ -352,7 +353,7 @@ Remember: Write naturally and clearly. The explanation should read like a cohesi
         try:
             response = self.client.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=4000,  # Reduced for faster responses
+                max_tokens=8000,  # Increased to fit all 5 sources with full text
                 messages=[{"role": "user", "content": prompt}]
             )
             return response.content[0].text
