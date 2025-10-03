@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import tempfile
+import pickle
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -16,6 +17,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import anthropic
 import logging
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from openai import OpenAI
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+# OpenAI client for embeddings
+openai_client = None
 
 @dataclass
 class SearchResult:
@@ -34,6 +41,110 @@ class SearchResult:
     author: str
     work: str
     metadata: Dict[str, Any]
+    similarity_score: float = 0.0  # For semantic search ranking
+
+class SemanticSearchEngine:
+    """Vector similarity search using OpenAI embeddings"""
+
+    def __init__(self, openai_api_key: str):
+        self.client = OpenAI(api_key=openai_api_key)
+        self.embeddings = []
+        self.chunks_data = []
+        self.embeddings_file = 'embeddings_cache.pkl'
+
+    def create_embeddings(self, all_chunks: List[SearchResult]):
+        """Create embeddings for all chunks - one-time operation"""
+        logger.info(f"Creating embeddings for {len(all_chunks)} chunks...")
+
+        texts_to_embed = []
+        for chunk in all_chunks:
+            # Combine title + text for better semantic matching
+            combined_text = f"{chunk.chunk_title}\n{chunk.text[:1000]}"  # First 1000 chars
+            texts_to_embed.append(combined_text)
+
+        # Batch embed (OpenAI allows up to 2048 texts per request)
+        batch_size = 100
+        all_embeddings = []
+
+        for i in range(0, len(texts_to_embed), batch_size):
+            batch = texts_to_embed[i:i + batch_size]
+            logger.info(f"Embedding batch {i//batch_size + 1}/{(len(texts_to_embed) + batch_size - 1)//batch_size}")
+
+            import time
+            if i > 0:
+                time.sleep(15)  # Rate limit protection - wait between batches
+
+            response = self.client.embeddings.create(
+                model="text-embedding-3-large",  # Best quality
+                input=batch
+            )
+
+            batch_embeddings = [item.embedding for item in response.data]
+            all_embeddings.extend(batch_embeddings)
+
+        self.embeddings = np.array(all_embeddings)
+        self.chunks_data = all_chunks
+
+        # Cache embeddings to file
+        with open(self.embeddings_file, 'wb') as f:
+            pickle.dump({
+                'embeddings': self.embeddings,
+                'chunks_data': self.chunks_data
+            }, f)
+
+        logger.info(f"✅ Created and cached {len(all_embeddings)} embeddings")
+
+    def load_embeddings(self):
+        """Load cached embeddings if available"""
+        if Path(self.embeddings_file).exists():
+            logger.info("Loading cached embeddings...")
+            with open(self.embeddings_file, 'rb') as f:
+                data = pickle.load(f)
+                self.embeddings = data['embeddings']
+                self.chunks_data = data['chunks_data']
+            logger.info(f"✅ Loaded {len(self.chunks_data)} cached embeddings")
+            return True
+        return False
+
+    def semantic_search(self, query: str, top_k: int = 15, min_score: float = 0.25) -> List[SearchResult]:
+        """Find most similar chunks using vector similarity with quality threshold"""
+        # Embed the query
+        response = self.client.embeddings.create(
+            model="text-embedding-3-large",  # Match the model used for chunks
+            input=[query]
+        )
+        query_embedding = np.array(response.data[0].embedding)
+
+        # Calculate cosine similarity
+        similarities = np.dot(self.embeddings, query_embedding) / (
+            np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding)
+        )
+
+        # Get all results above threshold, sorted by similarity
+        all_indices = np.argsort(similarities)[::-1]
+
+        # Filter by minimum score and limit to top_k
+        results = []
+        for idx in all_indices:
+            score = float(similarities[idx])
+            if score < min_score:
+                break  # Stop when scores get too low
+
+            chunk = self.chunks_data[idx]
+            chunk.similarity_score = score
+            results.append(chunk)
+
+            if len(results) >= top_k:
+                break
+
+        # Log top results for debugging
+        if results:
+            logger.info(f"Top result: {results[0].chunk_title[:80]}... (score: {results[0].similarity_score:.3f})")
+            if len(results) > 1:
+                logger.info(f"2nd result: {results[1].chunk_title[:80]}... (score: {results[1].similarity_score:.3f})")
+            logger.info(f"Returned {len(results)} results above threshold {min_score}")
+
+        return results
 
 class ChabadSearchService:
     def __init__(self, sichos_file: str, maamarim_file: str):
@@ -50,6 +161,16 @@ class ChabadSearchService:
 
         # Common transliterations and translations
         self.term_translations = {
+            # Tanks and campaigns
+            'tank': 'טנק',
+            'tanks': 'טנקים',
+            'mitzvah tank': 'טנק מצוה',
+            'mitzvah tanks': 'טנקי מצוות',
+            'mivtza': 'מבצע',
+            'mivtzaim': 'מבצעים',
+            'campaign': 'מבצע',
+            'campaigns': 'מבצעים',
+
             # Malchus
             'malchus': 'מלכות',
             'malchut': 'מלכות',
@@ -93,6 +214,45 @@ class ChabadSearchService:
 
         logger.info(f"Loaded {len(self.sichos_data.get('chunks', []))} sichos chunks")
         logger.info(f"Loaded {len(self.maamarim_data.get('chunks', []))} maamarim chunks")
+
+    def get_all_chunks(self) -> List[SearchResult]:
+        """Get all chunks as SearchResult objects for embedding"""
+        all_results = []
+
+        # Get all sichos
+        sichos_chunks = self._get_all_from_data(
+            self.sichos_data, 'sichos', str(self.sichos_file)
+        )
+        all_results.extend(sichos_chunks)
+
+        # Get all maamarim
+        maamarim_chunks = self._get_all_from_data(
+            self.maamarim_data, 'maamarim', str(self.maamarim_file)
+        )
+        all_results.extend(maamarim_chunks)
+
+        return all_results
+
+    def _get_all_from_data(self, data: Dict, source_type: str, file_path: str) -> List[SearchResult]:
+        """Get all chunks from a data file"""
+        results = []
+        book_name = data.get('book_name_he', '') or data.get('book_name_en', '')
+        author = data.get('book_metadata', {}).get('author_he', '') or data.get('book_metadata', {}).get('author_en', '')
+
+        for chunk in data.get('chunks', []):
+            result = SearchResult(
+                file_path=file_path,
+                chunk_id=chunk.get('chunk_id', ''),
+                chunk_title=chunk.get('chunk_metadata', {}).get('chunk_title', ''),
+                discourse_title=self._extract_discourse_title(chunk),
+                text=chunk.get('text', ''),
+                author=author,
+                work=book_name,
+                metadata=chunk.get('chunk_metadata', {})
+            )
+            results.append(result)
+
+        return results
 
     def search_in_chunks(self, search_term: str) -> List[SearchResult]:
         """Search for term in all chunks from both files"""
@@ -409,6 +569,7 @@ class ChabadAnalyzer:
 # Flask API endpoints
 search_service = None
 analyzer = None
+semantic_engine = None
 
 @app.route('/')
 def serve_index():
@@ -432,7 +593,7 @@ def api_search():
             return jsonify({'error': 'Search term is required'}), 400
 
         # Initialize services
-        global search_service, analyzer
+        global search_service, analyzer, semantic_engine, openai_client
 
         # Check for environment variables first (Railway), then fallback to repo data, then local
         sichos_file = os.environ.get('SICHOS_FILE',
@@ -448,8 +609,64 @@ def api_search():
             logger.info(f"Maamarim file: {maamarim_file}")
             search_service = ChabadSearchService(sichos_file, maamarim_file)
 
-        # Perform search
-        results = search_service.search_concept(search_term, context, max_results)
+        # Initialize semantic search if we have OpenAI key
+        openai_api_key = os.environ.get('OPENAI_API_KEY', '')
+        if semantic_engine is None and openai_api_key and openai_api_key.startswith('sk-proj-'):
+            logger.info("Initializing semantic search engine...")
+            semantic_engine = SemanticSearchEngine(openai_api_key)
+
+            # Try to load cached embeddings
+            if not semantic_engine.load_embeddings():
+                # Create embeddings (first time only)
+                logger.info("Creating embeddings for first time - this will take ~2 minutes...")
+                all_chunks = search_service.get_all_chunks()
+                semantic_engine.create_embeddings(all_chunks)
+
+        # HYBRID SEARCH: Combine semantic + keyword for best results
+        if semantic_engine:
+            logger.info(f"🔍 Using hybrid search (semantic + keyword) for: {search_term}")
+
+            # Get semantic results
+            semantic_results = semantic_engine.semantic_search(search_term, max_results)
+            logger.info(f"Semantic: {len(semantic_results)} results")
+
+            # Get keyword results
+            keyword_results = search_service.search_concept(search_term, context, max_results)
+            logger.info(f"Keyword: {len(keyword_results)} results")
+
+            # Combine and deduplicate
+            results_dict = {}
+            for result in semantic_results:
+                key = (result.file_path, result.chunk_id)
+                results_dict[key] = result
+
+            # Add keyword results, boosting their scores
+            for result in keyword_results:
+                key = (result.file_path, result.chunk_id)
+                if key in results_dict:
+                    # Boost score if found in both
+                    results_dict[key].similarity_score += 0.5
+                else:
+                    # Add with decent score
+                    result.similarity_score = 0.4
+                    results_dict[key] = result
+
+            # Sort by similarity score descending
+            all_combined = sorted(results_dict.values(), key=lambda x: x.similarity_score, reverse=True)
+
+            # Filter: only keep results with good scores (>0.35) OR keyword matches (>0.35)
+            results = [r for r in all_combined if r.similarity_score > 0.35][:max_results]
+
+            # If we have very few results, lower threshold slightly
+            if len(results) < 3:
+                results = [r for r in all_combined if r.similarity_score > 0.25][:max_results]
+
+            logger.info(f"Combined: {len(results)} high-quality results (threshold: 0.35, scores: {[f'{r.similarity_score:.2f}' for r in results[:3]]})")
+        else:
+            # Fallback to keyword only
+            logger.info(f"🔤 Using keyword search for: {search_term}")
+            results = search_service.search_concept(search_term, context, max_results)
+            logger.info(f"Found {len(results)} results via keyword search")
 
         if not results:
             no_results_msg = f'<div dir="rtl" style="padding: 20px;"><h3>לא נמצאו תוצאות</h3><p>לא נמצאו תוצאות עבור "<strong>{search_term}</strong>" בסיכות ומאמרים של תשל״ה.</p><p>נסה חיפוש אחר או בדוק את האיות.</p></div>'
@@ -500,8 +717,8 @@ def api_search():
         # Append ALL full sources after AI analysis
         sources_html = f'<div dir="rtl"><h3 style="color: #C79A51; margin-top: 2rem; border-top: 2px solid #e5e7eb; padding-top: 1rem;">📖 כל המקורות ({len(results)} מקורות)</h3>'
 
-        # Show top 10 sources with full text
-        for i, result in enumerate(results[:10], 1):
+        # Show ALL sources with full text (not just 10)
+        for i, result in enumerate(results, 1):
             metadata = result.metadata
             source_type = metadata.get('type', '')  # שיחה or מאמר
             seif = metadata.get('seif', metadata.get('perek', ''))
