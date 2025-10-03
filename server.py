@@ -288,10 +288,18 @@ class ChabadSearchService:
         chunks = data.get('chunks', [])
         search_lower = search_term.lower()
 
+        # For Hebrew, also search for root form
+        # e.g., טנקים → also search for טנק
+        root_term = search_term.rstrip('ים').rstrip('ות').rstrip('ים')  # Remove common Hebrew suffixes
+
         for chunk in chunks:
             text = chunk.get('text', '')
             # Case-insensitive search that works with Hebrew/English/Yiddish
-            if search_lower in text.lower() or search_term in text:
+            # Also match root forms for Hebrew words
+            if (search_lower in text.lower() or
+                search_term in text or
+                (len(root_term) >= 3 and root_term in text)):
+
                 result = SearchResult(
                     file_path=file_path,
                     chunk_id=chunk.get('chunk_id', ''),
