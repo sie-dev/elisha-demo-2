@@ -463,12 +463,16 @@ class ChabadAnalyzer:
         if conversation_history:
             messages.extend(conversation_history[-6:])  # Last 3 exchanges
 
-        # Check if this is a follow-up question (no search results needed)
-        is_followup = conversation_history and len(conversation_history) > 0 and len(results) == 0
+        # Detect follow-up/conversational queries (not new topic searches)
+        followup_phrases = ['more', 'another', 'else', 'עוד', 'נוסף', 'אחר', 'גם', 'also', 'too']
+        is_conversational = any(phrase in search_term.lower() for phrase in followup_phrases)
+        has_previous_context = conversation_history and len(conversation_history) > 0
 
-        if is_followup:
-            # Natural conversation without new sources
-            user_message = f"שאלת המשך: {search_term}"
+        if is_conversational and has_previous_context:
+            # This is a follow-up question - answer from context, don't require new sources
+            user_message = f"""שאלת המשך: {search_term}
+
+זוהי שאלה המתייחסת לשיחה הקודמת. ענה על בסיס ההקשר והמקורות שכבר נמצאו."""
         else:
             # New search with sources
             user_message = f"""שאלה: "{search_term}"
@@ -668,7 +672,11 @@ def api_search():
             results = search_service.search_concept(search_term, context, max_results)
             logger.info(f"Found {len(results)} results via keyword search")
 
-        if not results:
+        # Handle conversational queries even without new results
+        is_conversational = any(phrase in search_term.lower() for phrase in ['more', 'another', 'else', 'עוד', 'נוסף', 'אחר', 'גם', 'also', 'too', '?'])
+        has_context = conversation_history and len(conversation_history) > 0
+
+        if not results and not (is_conversational and has_context):
             no_results_msg = f'<div dir="rtl" style="padding: 20px;"><h3>לא נמצאו תוצאות</h3><p>לא נמצאו תוצאות עבור "<strong>{search_term}</strong>" בסיכות ומאמרים של תשל״ה.</p><p>נסה חיפוש אחר או בדוק את האיות.</p></div>'
             return jsonify({
                 'success': True,
